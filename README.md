@@ -7,8 +7,8 @@
     sudo cmake --install build
 ```
 
-# Dev
+# Usage
 
 ```bash
-    G_MESSAGES_DEBUG=Plugin_Zotero rofi -show zotero -plugin-path ./build/lib -theme ./theme/zotero.rasi
+    rofi -show zotero
 ```
