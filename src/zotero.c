@@ -77,8 +77,9 @@ static void get_zotero(Mode *sw) {
     pd->entries = g_ptr_array_new_with_free_func(destroy_element);
     pd->zotero_path = g_strconcat(g_get_home_dir(), "/Zotero/", NULL);
     gchar *db_name = g_strconcat(pd->zotero_path, "zotero.sqlite", NULL);
+    gchar *url = g_strconcat("file:", db_name, "?mode=ro&immutable=1", NULL);
     if (access(db_name, F_OK) == 0) {
-        int rc = sqlite3_open(db_name, &pd->db);
+        int rc = sqlite3_open_v2(url, &pd->db, SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE | SQLITE_OPEN_URI, NULL);
         if (rc) {
             g_debug("Can't open database: %s\n", sqlite3_errmsg(pd->db));
             sqlite3_close(pd->db);
@@ -87,6 +88,7 @@ static void get_zotero(Mode *sw) {
         g_debug("Database does not exist.");
     }
     g_free(db_name);
+    g_free(url);
     char *zErrMsg = 0;
     int rc = sqlite3_exec(pd->db, STATEMENT, callback, (void *)pd, &zErrMsg);
     if (rc != SQLITE_OK) {
