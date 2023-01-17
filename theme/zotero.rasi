@@ -1,0 +1,87 @@
+configuration {
+    modi: "zotero";
+    show-icons: true;
+    display-yt: "Zotero Launcher";
+    drun-display-format: "{name}";
+    sidebar-mode: false;
+}
+
+* {
+    bg: #11121DEE;
+    fg: #A0A8CD;
+    prompt: #21222D;
+    button-selected: #9FBBF3;
+    background-color: @bg;
+    text-color: @fg;
+    display-drun: "";
+    border: #4A5057;
+}
+
+window {
+    border-color: @border;
+    border-radius: 7px;
+    border: 2;
+    padding: 12px;
+    width: 80%;
+}
+
+prompt {
+    background-color: @prompt;
+    enabled: true;
+    padding: 0.5% 32px 0% -0.5%;
+}
+
+entry {
+    background-color: @prompt;
+    expand: true;
+    padding: 0% 0% 0% 0%;
+    margin: 0% 0% 0% 0%;
+    placeholder-color: @fg;
+    placeholder: "Search";
+}
+
+inputbar {
+    children: [ prompt, entry ];
+    background-color: @prompt;
+    border-radius: 6px;
+    expand: false;
+    margin: 0%;
+    padding: 10px;
+}
+
+listview {
+    columns: 1;
+    lines: 10;
+    fixed-columns: true;
+    cycle: false;
+    layout: vertical;
+}
+
+mainbox {
+    children: [ inputbar, listview ];
+    padding: 0% 0% 0% 0%;
+    spacing: 0%;
+}
+
+element {
+    orientation: vertical;
+}
+
+element-text {
+    expand: false;
+    horizontal-align: 0.5;
+    vertical-align: 0.5;
+}
+
+element-text {
+    background-color: inherit;
+    text-color: inherit;
+}
+
+element selected {
+    background-color: @button-selected;
+    border-radius: 5px;
+    text-color: @bg;
+}
+
+/* vim: ft=css
