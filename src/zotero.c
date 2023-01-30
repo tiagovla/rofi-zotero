@@ -12,54 +12,55 @@
 
 G_MODULE_EXPORT Mode mode;
 
-static char *STATEMENT = " \
-    SELECT \n\
-      name, \n\
-      path, \n\
-      group_concat(author, '; ') as authors, \n\
-      SUBSTR(year, 1, INSTR(year || '-', '-') - 1) as year \n\
-    FROM \n\
-      ( \n\
-        SELECT \n\
-          MAX( \n\
-            CASE \n\
-              WHEN fieldName = 'title' THEN parentItemDataValues.value \n\
-            END \n\
-          ) as name, \n\
-          'storage/' || items.key || '/' || \n\
-        REPLACE \n\
-          (itemAttachments.path, 'storage:', '') as path, \n\
-          creators.lastName || ', ' || creators.firstName as author, \n\
-          MAX( \n\
-            CASE \n\
-              WHEN fieldName = 'date' THEN parentItemDataValues.value \n\
-            END \n\
-          ) as year \n\
-        FROM \n\
-          itemAttachments \n\
-          INNER JOIN items ON items.itemID = itemAttachments.itemID \n\
-          INNER JOIN itemData ON itemData.itemID = items.itemID \n\
-          INNER JOIN itemDataValues ON itemData.valueID = itemDataValues.valueID \n\
-          INNER JOIN items AS parentInfo ON itemAttachments.parentItemID = parentInfo.itemID \n\
-          INNER JOIN itemData as parentItemData ON parentItemData.itemID = parentInfo.itemID \n\
-          INNER JOIN itemDataValues as parentItemDataValues ON parentItemDataValues.valueID = parentItemData.valueID \n\
-          INNER JOIN itemCreators ON itemCreators.itemID = parentInfo.itemID \n\
-          INNER JOIN creators ON creators.creatorID = itemCreators.creatorID \n\
-          INNER JOIN fields ON fields.fieldID = parentItemData.fieldID \n\
-        WHERE \n\
-          ( \n\
-            itemAttachments.contentType LIKE '%pdf' \n\
-            OR itemAttachments.contentType LIKE '%djvu' \n\
-          ) \n\
-        GROUP BY \n\
-          items.itemID, \n\
-          author \n\
-        ORDER BY \n\
-          itemCreators.orderIndex \n\
-      ) \n\
-    GROUP BY \n\
-      name \n\
-    ";
+#define QUOTE(...) #__VA_ARGS__
+const char *STATEMENT = QUOTE(
+    SELECT
+      name,
+      path,
+      group_concat(author, '; ') as authors,
+      SUBSTR(year, 1, INSTR(year || '-', '-') - 1) as year
+    FROM
+      (
+        SELECT
+          MAX(
+            CASE
+              WHEN fieldName = 'title' THEN parentItemDataValues.value
+            END
+          ) as name,
+          'storage/' || items.key || '/' ||
+        REPLACE
+          (itemAttachments.path, 'storage:', "") as path,
+          creators.lastName || ', ' || creators.firstName as author,
+          MAX(
+            CASE
+              WHEN fieldName = 'date' THEN parentItemDataValues.value
+            END
+          ) as year
+        FROM
+          itemAttachments
+          INNER JOIN items ON items.itemID = itemAttachments.itemID
+          INNER JOIN itemData ON itemData.itemID = items.itemID
+          INNER JOIN itemDataValues ON itemData.valueID = itemDataValues.valueID
+          INNER JOIN items AS parentInfo ON itemAttachments.parentItemID = parentInfo.itemID
+          INNER JOIN itemData as parentItemData ON parentItemData.itemID = parentInfo.itemID
+          INNER JOIN itemDataValues as parentItemDataValues ON parentItemDataValues.valueID = parentItemData.valueID
+          INNER JOIN itemCreators ON itemCreators.itemID = parentInfo.itemID
+          INNER JOIN creators ON creators.creatorID = itemCreators.creatorID
+          INNER JOIN fields ON fields.fieldID = parentItemData.fieldID
+        WHERE
+          (
+            itemAttachments.contentType LIKE '%pdf'
+            OR itemAttachments.contentType LIKE '%djvu'
+          )
+        GROUP BY
+          items.itemID,
+          author
+        ORDER BY
+          itemCreators.orderIndex
+      )
+    GROUP BY
+      name
+);
 
 typedef struct {
     gchar *name;
