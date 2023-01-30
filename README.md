@@ -13,4 +13,5 @@
     rofi -show zotero
 ```
 
-![image](https://user-images.githubusercontent.com/30515389/212870203-0a2a9367-a08c-43f2-8e60-e4361784851e.png)
+![image](https://user-images.githubusercontent.com/30515389/215599502-393349d0-1729-48dd-a971-41c87f599c4a.png)
+
