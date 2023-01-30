@@ -14,37 +14,58 @@ G_MODULE_EXPORT Mode mode;
 
 static char *STATEMENT = " \
     SELECT \n\
-    parentItemDataValues.value as name, \n\
-    'storage/' || items.key || '/' || REPLACE(itemAttachments.path, 'storage:', '') as path, \n\
-    creators.lastName || ', ' || creators.firstName as author \n\
-    FROM itemAttachments  \n\
-    INNER JOIN items \n\
-        ON items.itemID = itemAttachments.itemID  \n\
-    INNER JOIN itemData  \n\
-        ON itemData.itemID = items.itemID  \n\
-    INNER JOIN itemDataValues \n\
-        ON itemData.valueID = itemDataValues.valueID  \n\
-    INNER JOIN items AS parentInfo  \n\
-        ON itemAttachments.parentItemID = parentInfo.itemID  \n\
-    INNER JOIN itemData as parentItemData  \n\
-        ON parentItemData.itemID = parentInfo.itemID  \n\
-    INNER JOIN itemDataValues as parentItemDataValues  \n\
-        ON parentItemDataValues.valueID = parentItemData.valueID \n\
-    INNER JOIN itemCreators  \n\
-        ON itemCreators.itemID = parentInfo.itemID \n\
-    INNER JOIN creators  \n\
-        ON creators.creatorID = itemCreators.creatorID \n\
-    WHERE itemData.fieldID = 1 \n\
-      AND itemCreators.orderIndex = 0 \n\
-      AND parentItemData.fieldID = 1 \n\
-      AND (itemAttachments.contentType LIKE '%pdf' \n\
-          OR itemAttachments.contentType LIKE '%djvu') \n\
+      name, \n\
+      path, \n\
+      group_concat(author, '; ') as authors, \n\
+      SUBSTR(year, 1, INSTR(year || '-', '-') - 1) as year \n\
+    FROM \n\
+      ( \n\
+        SELECT \n\
+          MAX( \n\
+            CASE \n\
+              WHEN fieldName = 'title' THEN parentItemDataValues.value \n\
+            END \n\
+          ) as name, \n\
+          'storage/' || items.key || '/' || \n\
+        REPLACE \n\
+          (itemAttachments.path, 'storage:', '') as path, \n\
+          creators.lastName || ', ' || creators.firstName as author, \n\
+          MAX( \n\
+            CASE \n\
+              WHEN fieldName = 'date' THEN parentItemDataValues.value \n\
+            END \n\
+          ) as year \n\
+        FROM \n\
+          itemAttachments \n\
+          INNER JOIN items ON items.itemID = itemAttachments.itemID \n\
+          INNER JOIN itemData ON itemData.itemID = items.itemID \n\
+          INNER JOIN itemDataValues ON itemData.valueID = itemDataValues.valueID \n\
+          INNER JOIN items AS parentInfo ON itemAttachments.parentItemID = parentInfo.itemID \n\
+          INNER JOIN itemData as parentItemData ON parentItemData.itemID = parentInfo.itemID \n\
+          INNER JOIN itemDataValues as parentItemDataValues ON parentItemDataValues.valueID = parentItemData.valueID \n\
+          INNER JOIN itemCreators ON itemCreators.itemID = parentInfo.itemID \n\
+          INNER JOIN creators ON creators.creatorID = itemCreators.creatorID \n\
+          INNER JOIN fields ON fields.fieldID = parentItemData.fieldID \n\
+        WHERE \n\
+          ( \n\
+            itemAttachments.contentType LIKE '%pdf' \n\
+            OR itemAttachments.contentType LIKE '%djvu' \n\
+          ) \n\
+        GROUP BY \n\
+          items.itemID, \n\
+          author \n\
+        ORDER BY \n\
+          itemCreators.orderIndex \n\
+      ) \n\
+    GROUP BY \n\
+      name \n\
     ";
 
 typedef struct {
     gchar *name;
     gchar *path;
     gchar *author;
+    gchar *year;
 } Entry;
 
 typedef struct {
@@ -59,6 +80,7 @@ void destroy_element(gpointer data) {
         g_free(entry->name);
         g_free(entry->path);
         g_free(entry->author);
+        g_free(entry->year);
         g_free(entry);
     }
 }
@@ -68,6 +90,11 @@ static int callback(void *data, int argc, char **argv, char **azColName) {
     e->name = g_strdup(argv[0]);
     e->path = g_strdup(argv[1]);
     e->author = g_strdup(argv[2]);
+    if (argv[3] == NULL) {
+        e->year = g_strdup("");
+    } else {
+        e->year = g_strdup(argv[3]);
+    }
     g_ptr_array_add(((ZoteroModePrivateData *)data)->entries, e);
     return 0;
 }
@@ -145,25 +172,25 @@ static char *zotero_get_display_value(const Mode *sw, unsigned int selected_line
                                       G_GNUC_UNUSED GList **attr_list, int get_entry) {
     ZoteroModePrivateData *pd = (ZoteroModePrivateData *)mode_get_private_data(sw);
     Entry *res = g_ptr_array_index(pd->entries, selected_line);
-    gsize size = strlen(res->name) + strlen(res->author) + 3 + 1;
+    gsize size = strlen(res->name) + strlen(res->author) + strlen(res->year) + 3 + 3 + 1;
     gchar *buffer = g_newa(gchar, size);
-    g_snprintf(buffer, size, "%s - %s", res->name, res->author);
+    g_snprintf(buffer, size, "[%s] %s - %s", res->year, res->name, res->author);
     return get_entry ? g_strdup(buffer) : NULL;
 }
 
 static int zotero_token_match(const Mode *sw, rofi_int_matcher **tokens, unsigned int index) {
     ZoteroModePrivateData *pd = (ZoteroModePrivateData *)mode_get_private_data(sw);
     Entry *res = g_ptr_array_index(pd->entries, index);
-    gsize size = strlen(res->name) + strlen(res->author) + 3 + 1;
+    gsize size = strlen(res->name) + strlen(res->author) + strlen(res->year) + 3 + 3 + 1;
     gchar *buffer = g_newa(gchar, size);
-    g_snprintf(buffer, size, "%s - %s", res->name, res->author);
+    g_snprintf(buffer, size, "[%s] %s - %s", res->year, res->name, res->author);
     return helper_token_match(tokens, buffer);
 }
 
 static char *zotero_get_message(const Mode *sw) { return g_markup_printf_escaped("Results:"); }
 
 static char *zotero_preprocess_input(Mode *sw, const char *input) {
-    ZoteroModePrivateData *pd = (ZoteroModePrivateData *)mode_get_private_data(sw);
+    // ZoteroModePrivateData *pd = (ZoteroModePrivateData *)mode_get_private_data(sw);
     return g_markup_printf_escaped("%s", input);
 }
 
