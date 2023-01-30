@@ -91,11 +91,7 @@ static int callback(void *data, int argc, char **argv, char **azColName) {
     e->name = g_strdup(argv[0]);
     e->path = g_strdup(argv[1]);
     e->author = g_strdup(argv[2]);
-    if (argv[3] == NULL) {
-        e->year = g_strdup("");
-    } else {
-        e->year = g_strdup(argv[3]);
-    }
+    e->year = argv[3] == NULL ? g_strdup("") : g_strdup(argv[3]);
     g_ptr_array_add(((ZoteroModePrivateData *)data)->entries, e);
     return 0;
 }
