@@ -1,18 +1,14 @@
-#include <gmodule.h>
-#include <pwd.h>
 #include <rofi/helper.h>
 #include <rofi/mode-private.h>
-#include <rofi/mode.h>
 #include <sqlite3.h>
-#include <stdio.h>
 #include <unistd.h>
 
 #undef G_LOG_DOMAIN
 #define G_LOG_DOMAIN "Plugin_Zotero"
+#define QUOTE(...) #__VA_ARGS__
 
 G_MODULE_EXPORT Mode mode;
 
-#define QUOTE(...) #__VA_ARGS__
 const char *STATEMENT = QUOTE(
     SELECT
       name,
