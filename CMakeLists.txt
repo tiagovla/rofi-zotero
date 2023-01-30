@@ -13,9 +13,9 @@ file(GLOB SOURCES "src/*.c")
 
 add_library(zotero SHARED ${SOURCES})
 set_target_properties(zotero PROPERTIES PREFIX "")
-target_link_libraries(zotero ${GLIB2_LIBRARIES} ${CAIRO_LIBRARIES} SQLite::SQLite3)
+target_link_libraries(zotero ${GLIB2_LIBRARIES} ${CAIRO_LIBRARIES}
+                      SQLite::SQLite3)
 target_include_directories(zotero PRIVATE src ${GLIB2_INCLUDE_DIRS}
                                           ${CAIRO_INCLUDE_DIRS})
 message(STATUS ${ROFI_PLUGINS_DIR})
-# "/usr/lib/rofi"
 install(TARGETS zotero DESTINATION ${ROFI_PLUGINS_DIR})

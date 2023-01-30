@@ -9,7 +9,7 @@
 
 G_MODULE_EXPORT Mode mode;
 
-const char *STATEMENT = QUOTE(
+static const char *STATEMENT = QUOTE(
     SELECT
       name,
       path,
@@ -71,7 +71,7 @@ typedef struct {
     GPtrArray *entries;
 } ZoteroModePrivateData;
 
-void destroy_element(gpointer data) {
+static void destroy_element(gpointer data) {
     if (data != NULL) {
         Entry *entry = (Entry *)data;
         g_free(entry->name);

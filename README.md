@@ -2,8 +2,8 @@
 
 ```bash
     cmake -B build .
-    cmake --build build
-    sudo cmake --install build
+    cmake --build build --config Release
+    sudo cmake --install build --strip
 ```
 
 # Usage
