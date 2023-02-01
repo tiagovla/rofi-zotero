@@ -3,6 +3,7 @@ project(rofi-zotero)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(FETCHCONTENT_QUIET FALSE)
 
 find_package(PkgConfig)
 find_package(SQLite3 REQUIRED)
@@ -17,5 +18,4 @@ target_link_libraries(zotero ${GLIB2_LIBRARIES} ${CAIRO_LIBRARIES}
                       SQLite::SQLite3)
 target_include_directories(zotero PRIVATE src ${GLIB2_INCLUDE_DIRS}
                                           ${CAIRO_INCLUDE_DIRS})
-message(STATUS ${ROFI_PLUGINS_DIR})
 install(TARGETS zotero DESTINATION ${ROFI_PLUGINS_DIR})

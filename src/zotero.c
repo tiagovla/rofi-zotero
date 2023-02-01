@@ -1,6 +1,8 @@
 #include <rofi/helper.h>
+#include <rofi/history.h>
 #include <rofi/mode-private.h>
 #include <sqlite3.h>
+#include <stdio.h>
 #include <unistd.h>
 
 #undef G_LOG_DOMAIN
@@ -8,6 +10,7 @@
 #define QUOTE(...) #__VA_ARGS__
 
 G_MODULE_EXPORT Mode mode;
+#define DRUN_CACHE_FILE "rofi3.zoterocache"
 
 // clang-format off
 static const char *STATEMENT = QUOTE(
@@ -65,6 +68,7 @@ typedef struct {
     gchar *path;
     gchar *author;
     gchar *year;
+    int sort_index;
 } Entry;
 
 typedef struct {
@@ -94,6 +98,12 @@ static int callback(void *data, int argc, char **argv, char **azColName) {
     return 0;
 }
 
+static int sort_function(const void *a, const void *b) {
+    Entry *e1 = *((Entry **)a);
+    Entry *e2 = *((Entry **)b);
+    return e1->sort_index - e2->sort_index;
+}
+
 static void get_zotero(Mode *sw) {
     ZoteroModePrivateData *pd = (ZoteroModePrivateData *)mode_get_private_data(sw);
     pd->entries = g_ptr_array_new_with_free_func(destroy_element);
@@ -111,12 +121,39 @@ static void get_zotero(Mode *sw) {
     }
     g_free(db_name);
     g_free(url);
-    char *zErrMsg = 0;
-    int rc = sqlite3_exec(pd->db, STATEMENT, callback, (void *)pd, &zErrMsg);
-    if (rc != SQLITE_OK) {
-        g_debug("SQL error: %s", zErrMsg);
-        sqlite3_free(zErrMsg);
+
+    sqlite3_stmt *statement = 0;
+    sqlite3_prepare_v2(pd->db, STATEMENT, -1, &statement, 0);
+    int n = 0;
+    while (sqlite3_step(statement) == SQLITE_ROW) {
+        gchar *name = g_strdup((gchar *)sqlite3_column_text(statement, 1));
+        Entry *e = g_malloc(sizeof(Entry));
+        e->name = g_strdup((gchar *)sqlite3_column_text(statement, 0));
+        e->path = g_strdup((gchar *)sqlite3_column_text(statement, 1));
+        e->author = g_strdup((gchar *)sqlite3_column_text(statement, 2));
+        e->year = (gchar *)sqlite3_column_text(statement, 3) == NULL
+                      ? g_strdup("")
+                      : g_strdup((gchar *)sqlite3_column_text(statement, 3));
+        g_ptr_array_add(pd->entries, e);
+        e->sort_index = n++;
     }
+
+    unsigned int length = 0;
+    const char *cache_dir = g_get_user_cache_dir();
+    char *path = g_build_filename(cache_dir, DRUN_CACHE_FILE, NULL);
+    gchar **retv = history_get_list(path, &length);
+    for (unsigned int index = 0; index < length; index++) {
+        for (unsigned int i = 0; i < pd->entries->len; i++) {
+            Entry *e = g_ptr_array_index(pd->entries, i);
+            if (g_strcmp0(e->path, retv[index]) == 0) {
+                e->sort_index = -(length - index);
+            }
+        }
+    }
+    g_ptr_array_sort(pd->entries, sort_function);
+
+    g_free(path);
+    g_strfreev(retv);
 }
 
 static int zotero_mode_init(Mode *sw) {
@@ -147,6 +184,10 @@ static ModeMode zotero_mode_result(Mode *sw, int menu_entry, char **input, unsig
         char *default_cmd = "xdg-open";
         gchar *cmd = g_strconcat(default_cmd, " \"", pd->zotero_path, res->path, "\"", NULL);
         helper_execute_command(NULL, cmd, FALSE, NULL);
+        const char *cache_dir = g_get_user_cache_dir();
+        char *path = g_build_filename(cache_dir, DRUN_CACHE_FILE, NULL);
+        history_set(path, res->path);
+        g_free(path);
         g_free(cmd);
     }
     return retv;
