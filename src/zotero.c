@@ -9,6 +9,7 @@
 
 G_MODULE_EXPORT Mode mode;
 
+// clang-format off
 static const char *STATEMENT = QUOTE(
     SELECT
       name,
@@ -57,6 +58,7 @@ static const char *STATEMENT = QUOTE(
     GROUP BY
       name
 );
+// clang-format on
 
 typedef struct {
     gchar *name;
